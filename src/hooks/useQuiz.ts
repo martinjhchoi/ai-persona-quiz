@@ -38,34 +38,34 @@ export function useQuiz() {
   const progress = (state.currentIndex / QUESTIONS.length) * 100;
 
   const selectAnswer = useCallback((answer: 'A' | 'B') => {
+    // Phase 1: 답 즉시 기록 → .selected 스타일 렌더링 (노란색 피드백)
     setState((prev) => {
       const answers: Answers = {
         ...prev.answers,
         [QUESTIONS[prev.currentIndex].id]: answer,
       };
-
-      // sessionStorage 백업 (실패는 무시)
       try {
         sessionStorage.setItem('quiz_answers', JSON.stringify(answers));
       } catch {
         /* noop */
       }
-
-      const isLast = prev.currentIndex === QUESTIONS.length - 1;
-      if (isLast) {
-        return {
-          ...prev,
-          answers,
-          result: calculateResult(answers),
-          phase: 'complete',
-        };
-      }
-      return {
-        ...prev,
-        answers,
-        currentIndex: prev.currentIndex + 1,
-      };
+      return { ...prev, answers };
     });
+
+    // Phase 2: 300ms 후 다음 문항으로 이동 (또는 결과 산출)
+    setTimeout(() => {
+      setState((prev) => {
+        const isLast = prev.currentIndex === QUESTIONS.length - 1;
+        if (isLast) {
+          return {
+            ...prev,
+            result: calculateResult(prev.answers),
+            phase: 'complete',
+          };
+        }
+        return { ...prev, currentIndex: prev.currentIndex + 1 };
+      });
+    }, 300);
   }, []);
 
   const goBack = useCallback(() => {
