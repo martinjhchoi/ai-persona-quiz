@@ -24,10 +24,11 @@ export function decodeResult(encoded: string): QuizResult | null {
 }
 
 /**
- * 결과 페이지 공유 URL 생성: `${baseUrl}/result?result=<encoded>`
+ * 결과 페이지 공유 URL 생성: `${baseUrl}/result?result=<encoded>&utm_*`
  */
 export function buildShareUrl(result: QuizResult, baseUrl: string): string {
-  return `${baseUrl}/result?result=${encodeURIComponent(encodeResult(result))}`;
+  const encoded = encodeURIComponent(encodeResult(result));
+  return `${baseUrl}/result?result=${encoded}&utm_source=kakaotalk&utm_medium=social&utm_campaign=ai-persona`;
 }
 
 /**

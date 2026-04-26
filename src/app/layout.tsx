@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
+import Script from 'next/script';
 import KakaoInit from '@/components/KakaoInit';
+import { GA_MEASUREMENT_ID } from '@/lib/gtag';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -26,6 +28,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         {children}
         <KakaoInit />
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="ga4-init" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${GA_MEASUREMENT_ID}');
+          `}
+        </Script>
       </body>
     </html>
   );

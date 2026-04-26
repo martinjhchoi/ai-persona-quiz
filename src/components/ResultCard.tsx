@@ -9,6 +9,7 @@ import {
 } from '@/data/personas';
 import { downloadCard } from '@/lib/download';
 import { buildShareUrl } from '@/lib/share';
+import { gtagEvent } from '@/lib/gtag';
 
 interface ResultCardProps {
   result: QuizResult;
@@ -33,6 +34,7 @@ export function ResultCard({ result }: ResultCardProps) {
     if (isIOS) triggerToast();
 
     try {
+      gtagEvent('card_download', { persona_type: result.type });
       await downloadCard(cardRef.current, persona.name);
     } catch (err) {
       console.error('[ResultCard] download failed:', err);
@@ -43,6 +45,7 @@ export function ResultCard({ result }: ResultCardProps) {
 
   const handleShareKakao = async () => {
     if (typeof window === 'undefined') return;
+    gtagEvent('kakao_share', { persona_type: result.type });
     const shareUrl = buildShareUrl(result, window.location.origin);
     const kakao = (window as any).Kakao;
 
