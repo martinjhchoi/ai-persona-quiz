@@ -34,33 +34,76 @@ export async function downloadCard(
   const origTransform = cardEl.style.transform;
   cardEl.style.transform = 'none';
 
+  // 이미지 pre-fetch: Next.js <Image> srcset 문제 대응 (모바일 캡처 시 빈칸 방지)
+  const imgEls = Array.from(cardEl.querySelectorAll<HTMLImageElement>('img'));
+  const origSrcData = imgEls.map((img) => ({ src: img.src, srcset: img.srcset }));
+
+  for (const img of imgEls) {
+    const src = img.currentSrc || img.src;
+    if (!src || src.startsWith('data:')) continue;
+    try {
+      const res = await fetch(src, { cache: 'no-cache' });
+      const blob = await res.blob();
+      await new Promise<void>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          img.src = reader.result as string;
+          img.srcset = '';
+          resolve();
+        };
+        reader.onerror = () => resolve();
+        reader.readAsDataURL(blob);
+      });
+    } catch {
+      // fetch 실패 시 원본 유지
+    }
+  }
+
+  const restore = () => {
+    cardEl.style.transform = origTransform;
+    if (badge) {
+      badge.style.top = origTop;
+      badge.style.right = origRight;
+      badge.style.animation = origAnim;
+    }
+    if (actions) actions.style.display = origDisplay;
+    imgEls.forEach((img, i) => {
+      img.src = origSrcData[i].src;
+      img.srcset = origSrcData[i].srcset;
+    });
+  };
+
   try {
     const dataUrl = await toPng(cardEl, {
       pixelRatio: 3,
       backgroundColor: '#ffffff',
-      // 회전된 자식 요소(tagline, hashtag)도 캡처 시 제거
-      filter: (node: Node) => {
-        if (node instanceof HTMLElement) {
-          // 액션 버튼은 이미 display:none 했으므로 추가 필터 불필요
-        }
-        return true;
-      },
     });
 
-    // 스타일 복원
-    cardEl.style.transform = origTransform;
-    if (badge) { badge.style.top = origTop; badge.style.right = origRight; badge.style.animation = origAnim; }
-    if (actions) actions.style.display = origDisplay;
+    restore();
 
+    // iOS: navigator.share({ files }) → 사진 앱 저장
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if (isIOS && typeof navigator.share === 'function') {
+      try {
+        const res = await fetch(dataUrl);
+        const blob = await res.blob();
+        const file = new File([blob], filename, { type: 'image/png' });
+        if (navigator.canShare?.({ files: [file] })) {
+          await navigator.share({ files: [file], title: '나의 AI 페르소나' });
+          return;
+        }
+      } catch {
+        // 사용자 취소 또는 share 실패 → a.click() 폴백
+      }
+    }
+
+    // Android / Desktop: <a download>
     const a = document.createElement('a');
     a.href = dataUrl;
     a.download = filename;
     a.click();
   } catch (err) {
-    // 스타일 복원 보장
-    cardEl.style.transform = origTransform;
-    if (badge) { badge.style.top = origTop; badge.style.right = origRight; badge.style.animation = origAnim; }
-    if (actions) actions.style.display = origDisplay;
+    restore();
     console.error('[downloadCard] failed:', err);
     throw err;
   }
