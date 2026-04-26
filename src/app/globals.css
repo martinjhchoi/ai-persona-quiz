@@ -335,8 +335,9 @@ a { text-decoration: none; color: inherit; }
   box-shadow: none;
 }
 .quiz-option.selected {
-  background: var(--accent);
+  background: #FEE500;
   border-color: var(--ink);
+  box-shadow: 4px 4px 0 var(--ink);
 }
 
 .quiz-opt-label {

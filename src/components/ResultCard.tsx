@@ -1,9 +1,5 @@
 'use client';
 
-// ============================================================
-// ResultCard.tsx — 결과 카드 + 다운로드/공유 액션
-// ============================================================
-
 import { useRef, useState } from 'react';
 import Image from 'next/image';
 import {
@@ -22,10 +18,20 @@ export function ResultCard({ result }: ResultCardProps) {
   const persona = PERSONAS[result.type];
   const cardRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+
+  const triggerToast = () => {
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 4000);
+  };
 
   const handleDownload = async () => {
     if (!cardRef.current || isDownloading) return;
     setIsDownloading(true);
+
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if (isIOS) triggerToast();
+
     try {
       await downloadCard(cardRef.current, persona.name);
     } catch (err) {
@@ -93,74 +99,100 @@ export function ResultCard({ result }: ResultCardProps) {
   };
 
   return (
-    <div className="result-card-wrap">
-      <div id="result-card" ref={cardRef} className="result-card">
-        {result.showAngryBadge && (
-          <div className="angry-badge-wrap" aria-label="앵그리 욕쟁이 뱃지">
+    <>
+      {showToast && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 'env(safe-area-inset-top, 16px)',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            marginTop: 16,
+            background: '#1a1a1a',
+            color: '#fff',
+            padding: '10px 20px',
+            borderRadius: 100,
+            fontSize: 14,
+            fontFamily: 'var(--font-body, sans-serif)',
+            whiteSpace: 'nowrap',
+            zIndex: 9999,
+            boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+            pointerEvents: 'none',
+          }}
+        >
+          공유 창에서 &apos;이미지 저장&apos;을 탭하세요 👆
+        </div>
+      )}
+
+      <div className="result-card-wrap">
+        <div id="result-card" ref={cardRef} className="result-card">
+          {result.showAngryBadge && (
+            <div className="angry-badge-wrap" aria-label="앵그리 욕쟁이 뱃지">
+              <Image
+                src={ANGRY_BADGE_IMAGE}
+                alt="앵그리 욕쟁이 뱃지"
+                width={72}
+                height={72}
+                priority
+              />
+            </div>
+          )}
+
+          <div
+            className={`result-card-banner${result.showAngryBadge ? ' with-badge' : ''}`}
+            style={{ background: persona.color }}
+          >
+            <span className="result-persona-type">{persona.name}</span>
+            <span className="result-type-badge">{persona.typeBadge}</span>
+          </div>
+
+          <div className="result-illo">
+            <span className="illo-star-1">✦</span>
             <Image
-              src={ANGRY_BADGE_IMAGE}
-              alt="앵그리 욕쟁이 뱃지"
-              width={72}
-              height={72}
+              src={persona.image}
+              alt={persona.name}
+              width={220}
+              height={220}
               priority
             />
-          </div>
-        )}
-
-        <div
-          className={`result-card-banner${result.showAngryBadge ? ' with-badge' : ''}`}
-          style={{ background: persona.color }}
-        >
-          <span className="result-persona-type">{persona.name}</span>
-          <span className="result-type-badge">{persona.typeBadge}</span>
-        </div>
-
-        <div className="result-illo">
-          <span className="illo-star-1">✦</span>
-          <Image
-            src={persona.image}
-            alt={persona.name}
-            width={220}
-            height={220}
-            priority
-          />
-          <span className="illo-star-2">★</span>
-        </div>
-
-        <div className="result-card-body">
-          <span className="result-tagline">{persona.tagline}</span>
-
-          <div className="result-desc-panel">
-            <p className="result-desc-text">{persona.description}</p>
+            <span className="illo-star-2">★</span>
           </div>
 
-          <div className="result-hashtags">
-            {persona.hashtags.map((tag) => (
-              <span key={tag} className="hashtag">
-                {tag}
-              </span>
-            ))}
-          </div>
+          <div className="result-card-body">
+            <span className="result-tagline">{persona.tagline}</span>
 
-          <div className="result-actions">
-            <button
-              type="button"
-              className="btn-download"
-              onClick={handleDownload}
-              disabled={isDownloading}
-            >
-              {isDownloading ? '저장 중…' : '⬇ 카드 저장'}
-            </button>
-            <button
-              type="button"
-              className="btn-share-kakao"
-              onClick={handleShareKakao}
-            >
-              💬 카카오톡 공유
-            </button>
+            <div className="result-desc-panel">
+              <p className="result-desc-text">{persona.description}</p>
+            </div>
+
+            <div className="result-hashtags">
+              {persona.hashtags.map((tag) => (
+                <span key={tag} className="hashtag">
+                  {tag}
+                </span>
+              ))}
+            </div>
+
+            <div className="result-actions">
+              <button
+                type="button"
+                className="btn-download"
+                onClick={handleDownload}
+                disabled={isDownloading}
+              >
+                {isDownloading ? '저장 중…' : '⬇ 카드 저장'}
+              </button>
+              <button
+                type="button"
+                className="btn-share-kakao"
+                onClick={handleShareKakao}
+              >
+                💬 카카오톡 공유
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
